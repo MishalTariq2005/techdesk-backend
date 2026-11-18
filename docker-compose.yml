@@ -1,0 +1,244 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: techdesk-postgres
+    environment:
+      POSTGRES_USER: techdesk_admin
+      POSTGRES_PASSWORD: changeme
+      POSTGRES_DB: techdesk
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U techdesk_admin -d techdesk"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: techdesk-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@techdesk.com
+      PGADMIN_DEFAULT_PASSWORD: changeme
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+
+  eureka-server:
+    build: ./eureka-server
+    container_name: techdesk-eureka
+    ports:
+      - "8761:8761"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8761/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  api-gateway:
+    build: ./api-gateway
+    container_name: techdesk-gateway
+    ports:
+      - "8080:8080"
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  auth-service:
+    build: ./auth-service
+    container_name: techdesk-auth
+    ports:
+      - "8081:8081"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8081/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  tenant-service:
+    build: ./tenant-service
+    container_name: techdesk-tenant
+    ports:
+      - "8082:8082"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8082/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  redis:
+    image: redis:7-alpine
+    container_name: techdesk-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mailhog:
+    image: mailhog/mailhog
+    container_name: techdesk-mailhog
+    ports:
+      - "1025:1025"   # SMTP
+      - "8025:8025"   # web UI - this is where you'll actually see the emails
+
+  ticket-service:
+    build: ./ticket-service
+    container_name: techdesk-ticket
+    ports:
+      - "8083:8083"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8083/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  asset-service:
+    build: ./asset-service
+    container_name: techdesk-asset
+    ports:
+      - "8084:8084"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      auth-service:
+        condition: service_healthy   # NEW dependency: UserLookupClient calls auth-service's
+                                      # GET /api/users/{id} at request time — not a hard
+                                      # startup requirement (Eureka handles late discovery
+                                      # fine either way), but reflects the real runtime
+                                      # relationship that didn't exist before this service.
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8084/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  file-service:
+    build: ./file-service
+    container_name: techdesk-file
+    ports:
+      - "8085:8085"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      ticket-service:
+        condition: service_healthy   # TicketLookupClient calls GET /api/tickets/{id} at
+                                      # request time — same non-hard-startup-requirement
+                                      # note as asset-service's auth-service dependency.
+      asset-service:
+        condition: service_healthy   # GadgetRequestLookupClient calls GET /api/gadget-requests/{id}
+    volumes:
+      - file_storage_data:/data/file-storage   # roadmap 5.3 says "local volume
+                                                  # (or S3-compatible MinIO)" — no
+                                                  # MinIO container exists in this
+                                                  # compose file, so defaulting to
+                                                  # local volume storage, same
+                                                  # pattern as postgres_data
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8085/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  notification-service:
+    build: ./notification-service
+    container_name: techdesk-notification
+    ports:
+      - "8086:8086"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      redis:
+        condition: service_healthy   # NEW dependency: Pub/Sub fan-out for SSE across
+                                      # instances (see RedisConfig) — redis was already
+                                      # running for auth-service's refresh-token
+                                      # blacklist, this is a new USE of it, not new infra
+      auth-service:
+        condition: service_healthy   # UserLookupClient resolves recipient emails
+      mailhog:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8086/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  audit-log-service:
+    build: ./audit-log-service
+    container_name: techdesk-audit-log
+    ports:
+      - "8087:8087"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8087/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  reporting-service:
+    build: ./reporting-service
+    container_name: techdesk-reporting
+    ports:
+      - "8088:8088"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8088/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+
+volumes:
+  postgres_data:
+  file_storage_data:

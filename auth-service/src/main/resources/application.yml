@@ -1,0 +1,54 @@
+spring:
+  application:
+    name: auth-service
+  datasource:
+    url: jdbc:postgresql://postgres:5432/techdesk
+    username: techdesk_admin
+    password: changeme
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: true
+    properties:
+      hibernate:
+      
+  flyway:
+    schemas: auth
+  data:
+    redis:
+      host: redis
+      port: 6379
+  mail:
+    host: mailhog
+    port: 1025
+    properties:
+      mail:
+        smtp:
+          auth: false
+          starttls:
+            enable: false
+
+server:
+  port: 8081
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://eureka-server:8761/eureka/
+  instance:
+    prefer-ip-address: true
+
+app:
+  jwt:
+    secret: TpBPxVBObQ7Hf79gRYfQ1QoFqoToPV3DTTKq4SOaLrc=   # dev only — move to .env before any PR
+    access-token-expiry-minutes: 15
+  frontend:
+    base-url: ${FRONTEND_BASE_URL:http://localhost:5173}
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics
+  endpoint:
+    health:
+      show-details: never

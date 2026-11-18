@@ -1,0 +1,46 @@
+spring:
+  application:
+    name: notification-service
+  datasource:
+    url: jdbc:postgresql://postgres:5432/techdesk
+    username: techdesk_admin
+    password: changeme
+  jpa:
+    hibernate:
+      ddl-auto: none
+  flyway:
+    enabled: false      # same as every other service — tenant-service owns
+                         # the tenant schema migrations (notifications lives
+                         # in db/migration/tenant/ under tenant-service)
+  mail:
+    host: mailhog
+    port: 1025           # same MailHog SMTP already used by auth-service's
+                         # InvitationService — no auth needed for MailHog
+  data:
+    redis:
+      host: redis
+      port: 6379
+
+server:
+  port: 8086   # next free port after file-service's 8085
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://eureka-server:8761/eureka/
+  instance:
+    prefer-ip-address: true
+
+app:
+  jwt:
+    secret: TpBPxVBObQ7Hf79gRYfQ1QoFqoToPV3DTTKq4SOaLrc=   # MUST match auth-service's — same signing key
+  notifications:
+    redis-channel: techdesk:notifications   # Pub/Sub channel for SSE fan-out across instances
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics
+  endpoint:
+    health:
+      show-details: never

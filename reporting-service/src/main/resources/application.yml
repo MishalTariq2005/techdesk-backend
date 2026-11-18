@@ -1,0 +1,40 @@
+spring:
+  application:
+    name: reporting-service
+  datasource:
+    url: jdbc:postgresql://postgres:5432/techdesk
+    username: techdesk_admin
+    password: changeme
+  jpa:
+    hibernate:
+      ddl-auto: none   # report_jobs (V15) is owned by tenant-service's migration set, same as tickets/assets
+  flyway:
+    enabled: false
+
+server:
+  port: 8088
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://eureka-server:8761/eureka/
+  instance:
+    prefer-ip-address: true
+
+app:
+  jwt:
+    secret: TpBPxVBObQ7Hf79gRYfQ1QoFqoToPV3DTTKq4SOaLrc=
+  reporting:
+    # 6.2 challenge threshold: reports that don't finish within this window
+    # get handed off to the async job/poll flow instead of blocking the
+    # request.
+    sync-timeout-seconds: 3
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics
+  endpoint:
+    health:
+      show-details: never

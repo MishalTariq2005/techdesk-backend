@@ -1,0 +1,49 @@
+spring:
+  application:
+    name: tenant-service
+  datasource:
+    url: jdbc:postgresql://postgres:5432/techdesk
+    username: techdesk_admin
+    password: changeme
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+  flyway:
+    locations: classpath:db/migration/public
+  mail:
+    host: mailhog
+    port: 1025
+    properties:
+      mail:
+        smtp:
+          auth: false
+          starttls:
+            enable: false
+
+server:
+  port: 8082
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://eureka-server:8761/eureka/
+  instance:
+    prefer-ip-address: true
+app:
+  jwt:
+    # Must be the EXACT same value as auth-service's app.jwt.secret — this
+    # service verifies tokens auth-service issues, it doesn't issue its own.
+    secret: TpBPxVBObQ7Hf79gRYfQ1QoFqoToPV3DTTKq4SOaLrc=
+  mail:
+    from: no-reply@techdesk.local
+  tenant:
+    migrations-location: classpath:db/migration/tenant
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics
+  endpoint:
+    health:
+      show-details: never

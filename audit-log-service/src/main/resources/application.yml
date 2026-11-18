@@ -1,0 +1,57 @@
+spring:
+  application:
+    name: audit-log-service
+  datasource:
+    url: jdbc:postgresql://postgres:5432/techdesk?currentSchema=public
+    username: techdesk_admin
+    password: changeme
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+  flyway:
+    # audit_logs physically lives in the shared "public" schema (created by
+    # tenant-service's public/V1 migration back in Week 1) — but this service
+    # owns its lifecycle from Week 4 onward (HMAC signature column,
+    # immutability trigger). Using a DISTINCT flyway history table name
+    # (rather than the default flyway_schema_history) is deliberate: it lets
+    # audit-log-service track its own migration history independently of
+    # tenant-service's, on the same physical schema, without either service's
+    # Flyway run fighting over — or needing to coordinate version numbers
+    # with — the other's history table. Every migration here is written
+    # idempotently (IF NOT EXISTS / IF EXISTS guards) specifically because
+    # startup order between the two services isn't guaranteed.
+    schemas: public
+    table: flyway_schema_history_audit_log_service
+    baseline-on-migrate: true
+    baseline-version: 0
+
+server:
+  port: 8087
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://eureka-server:8761/eureka/
+  instance:
+    prefer-ip-address: true
+
+app:
+  jwt:
+    # Must match auth-service's app.jwt.secret — this service only ever
+    # verifies tokens, never issues them.
+    secret: TpBPxVBObQ7Hf79gRYfQ1QoFqoToPV3DTTKq4SOaLrc=
+  audit:
+    # HMAC-SHA256 signing key for tamper-evidence (6.3 challenge). Dev-only
+    # default — move to an actual secret store before anything resembling
+    # production, same flag as every other "dev only" secret in this repo.
+    hmac-secret: ${AUDIT_HMAC_SECRET:dev-only-audit-hmac-secret-change-me-32bytes}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics
+  endpoint:
+    health:
+      show-details: never

@@ -1,0 +1,44 @@
+spring:
+  application:
+    name: ticket-service
+  datasource:
+    url: jdbc:postgresql://postgres:5432/techdesk
+    username: techdesk_admin
+    password: changeme
+  jpa:
+    hibernate:
+      ddl-auto: none   # same reasoning as auth-service — Flyway is the sole schema-truth source
+  flyway:
+    enabled: false      # ticket-service does NOT run its own Flyway — tenant-service owns
+                         # the tenant schema migrations (ticket_categories, priority_rules
+                         # live in db/migration/tenant/ under tenant-service, same as `users`)
+
+server:
+  port: 8083   # pick the next free port after your existing services (adjust if taken)
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://eureka-server:8761/eureka/
+  instance:
+    prefer-ip-address: true
+
+app:
+  jwt:
+    secret: TpBPxVBObQ7Hf79gRYfQ1QoFqoToPV3DTTKq4SOaLrc=   # MUST match auth-service's — same signing key
+  sla:
+    # NOTE: business_hours (V14) is currently a single tenant-wide calendar,
+    # not per-tenant-timezone — a real per-tenant timezone would need its
+    # own column, which this migration didn't add (flagged as a known scope
+    # gap, not silently worked around). Every tenant's working-hours clock
+    # times are interpreted in THIS zone until that's built.
+    zone-id: ${SLA_ZONE_ID:UTC}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics
+  endpoint:
+    health:
+      show-details: never

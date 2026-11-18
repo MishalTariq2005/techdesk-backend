@@ -1,0 +1,45 @@
+spring:
+  application:
+    name: file-service
+  datasource:
+    url: jdbc:postgresql://postgres:5432/techdesk
+    username: techdesk_admin
+    password: changeme
+  jpa:
+    hibernate:
+      ddl-auto: none
+  flyway:
+    enabled: false      # same as ticket-service/asset-service — tenant-service owns
+                         # the tenant schema migrations (file_attachments lives in
+                         # db/migration/tenant/ under tenant-service)
+  servlet:
+    multipart:
+      max-file-size: 10MB    # matches the 10MB hard limit enforced again in code
+      max-request-size: 10MB
+
+server:
+  port: 8085   # next free port after asset-service's 8084
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://eureka-server:8761/eureka/
+  instance:
+    prefer-ip-address: true
+
+app:
+  jwt:
+    secret: TpBPxVBObQ7Hf79gRYfQ1QoFqoToPV3DTTKq4SOaLrc=   # MUST match auth-service's — same signing key
+  file-storage:
+    # Mounted Docker volume (see docker-compose.yml) — namespaced by tenant
+    # schema underneath this root (see FileStorageService), so even raw
+    # filesystem access is tenant-partitioned, not just the DB rows.
+    root: /data/file-storage
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics
+  endpoint:
+    health:
+      show-details: never

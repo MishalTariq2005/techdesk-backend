@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>org.springframework.boot</groupId>
+		<artifactId>spring-boot-starter-parent</artifactId>
+		<version>4.1.0</version>
+		<relativePath/> <!-- lookup parent from repository -->
+	</parent>
+	<groupId>com.example</groupId>
+	<artifactId>ticket-service</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
+	<name>ticket-service</name>
+	<description>Ticket management service for TechDesk</description>
+	<url/>
+	<licenses>
+		<license/>
+	</licenses>
+	<developers>
+		<developer/>
+	</developers>
+	<scm>
+		<connection/>
+		<developerConnection/>
+		<tag/>
+		<url/>
+	</scm>
+	<properties>
+		<java.version>17</java.version>
+		<spring-cloud.version>2025.1.2</spring-cloud.version>
+	</properties>
+	<dependencies>
+	    <dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-actuator</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-jpa</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-flyway</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-validation</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-webmvc</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.flywaydb</groupId>
+			<artifactId>flyway-database-postgresql</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.cloud</groupId>
+			<artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+		</dependency>
+		<!--
+		 NEW — ticket-service's first outbound service-to-service call
+		 (NotificationClient, fire-and-forget to notification-service for
+		 5.4's ticket-created/assigned/resolved/comment-added events). Same
+		 two dependencies asset-service and file-service both needed for
+		 their own outbound RestTemplate calls:
+		 - loadbalancer: lets @LoadBalanced RestTemplate resolve
+		   "NOTIFICATION-SERVICE" via Eureka rather than a hardcoded host:port
+		 - restclient: RestTemplateBuilder moved out of spring-boot-autoconfigure
+		   into its own module in Spring Boot 4.x — spring-boot-starter-webmvc
+		   alone doesn't pull it in transitively
+		-->
+		<dependency>
+			<groupId>org.springframework.cloud</groupId>
+			<artifactId>spring-cloud-starter-loadbalancer</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-restclient</artifactId>
+		</dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.aspectj</groupId>
+            <artifactId>aspectjweaver</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-api</artifactId>
+            <version>0.13.0</version>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-impl</artifactId>
+            <version>0.13.0</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-jackson</artifactId>
+            <version>0.13.0</version>
+            <scope>runtime</scope>
+        </dependency>
+
+		<dependency>
+			<groupId>org.postgresql</groupId>
+			<artifactId>postgresql</artifactId>
+			<scope>runtime</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-jpa-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-flyway-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-validation-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-webmvc-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+	</dependencies>
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>org.springframework.cloud</groupId>
+				<artifactId>spring-cloud-dependencies</artifactId>
+				<version>${spring-cloud.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-maven-plugin</artifactId>
+			</plugin>
+		</plugins>
+	</build>
+
+</project>

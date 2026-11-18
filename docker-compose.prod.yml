@@ -1,0 +1,97 @@
+# 6.5: "Add a Docker Compose production profile with environment variable
+# injection (no hardcoded values)."
+#
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# This is an OVERLAY, not a replacement — docker-compose.yml still defines
+# service topology, healthchecks, and dependencies; this file only replaces
+# the hardcoded dev credentials/secrets (POSTGRES_PASSWORD, JWT secret,
+# audit HMAC secret, etc — every "dev only" comment scattered through the
+# individual application.yml files) with environment variable references.
+# Every variable below MUST be set in the deploying environment (e.g. a
+# real .env file, not committed, or your platform's secret manager) —
+# there are no defaults here on purpose, so a missing secret fails loudly
+# at `docker-compose up` rather than silently falling back to a dev value
+# in what's supposed to be a production deploy.
+#
+# Required environment variables:
+#   POSTGRES_PASSWORD, PGADMIN_PASSWORD, JWT_SECRET, AUDIT_HMAC_SECRET,
+#   FRONTEND_BASE_URL, SLA_ZONE_ID
+
+version: '3.8'
+
+services:
+  postgres:
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+    restart: unless-stopped
+
+  pgadmin:
+    environment:
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:?PGADMIN_PASSWORD must be set}
+    restart: unless-stopped
+
+  eureka-server:
+    restart: unless-stopped
+
+  api-gateway:
+    environment:
+      APP_JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set}
+    restart: unless-stopped
+
+  auth-service:
+    environment:
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      APP_JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set}
+      APP_FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:?FRONTEND_BASE_URL must be set}
+    restart: unless-stopped
+
+  tenant-service:
+    environment:
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      APP_JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set}
+    restart: unless-stopped
+
+  redis:
+    restart: unless-stopped
+
+  mailhog:
+    restart: unless-stopped
+
+  ticket-service:
+    environment:
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      APP_JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set}
+      APP_SLA_ZONE_ID: ${SLA_ZONE_ID:-UTC}
+    restart: unless-stopped
+
+  asset-service:
+    environment:
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      APP_JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set}
+    restart: unless-stopped
+
+  file-service:
+    environment:
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      APP_JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set}
+    restart: unless-stopped
+
+  notification-service:
+    environment:
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      APP_JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set}
+    restart: unless-stopped
+
+  audit-log-service:
+    environment:
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      APP_JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set}
+      APP_AUDIT_HMAC_SECRET: ${AUDIT_HMAC_SECRET:?AUDIT_HMAC_SECRET must be set}
+    restart: unless-stopped
+
+  reporting-service:
+    environment:
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      APP_JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set}
+    restart: unless-stopped
